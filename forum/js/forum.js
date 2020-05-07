@@ -1,4 +1,3 @@
-const http = require('http');
 const fs   = require('fs');
 const cm   = require('./common');
 const util = require('./utils');
