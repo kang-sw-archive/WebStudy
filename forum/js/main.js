@@ -11,6 +11,12 @@ const qs   = require('querystring');
 const top  = fs.readFileSync('html/top.html', 'utf8');
 
 console.log("loading main module");
+var IPs      = {};
+let numVisit = JSON.parse(fs.readFileSync('archive/records.json'));
+
+if (!numVisit) {
+  numVisit = 0;
+}
 
 let app = http.createServer(function(request, response) {
   let _url  = request.url;
@@ -19,6 +25,17 @@ let app = http.createServer(function(request, response) {
   let title = query.id;
   var content;
   let address = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+
+  // Count number of visitors
+  if (IPs[address] === undefined) {
+    IPs[address] = address;
+    ++numVisit;
+    console.log("New visitor " + address + " Now total visit: " + numVisit);
+    fs.writeFile(
+      'archive/records.json',
+      JSON.stringify(numVisit),
+      (err) => { if(err) console.log(err) });
+  }
 
   if (request.method == 'POST') {
     let body = '';
@@ -34,20 +51,23 @@ let app = http.createServer(function(request, response) {
       var post     = qs.parse(body);
       var url_post = query.postid;
 
-      if (cm.postHandler[url_post]) {
+      // Only when postHandler exists...
+      if (cm.postHandler[url_post])
         cm.postHandler[url_post](query, post, address);
-      }
     });
   }
 
   {
     // Tries read content by url
-    try {
-      content = fs.readFileSync(_url.substr(1))
+    const contentFilePath = _url.substr(1);
+
+    // If given file exists, simply load it.
+    if (fs.existsSync(contentFilePath)) {
+      content = fs.readFileSync(contentFilePath);
       response.writeHead(200);
       response.end(content);
     }
-    catch (err) {
+    else {
       console.log("Accessing " + _url + " ... from  " + address);
 
       if (_url != '/') {
@@ -97,6 +117,10 @@ function showContent(response, title, content) {
         ${top}
         <div id="content">
           ${content}
+        </div>
+        <div style="margin:10pt; padding: 10pt; margin-top:30pt; border-top: solid 1pt; color:gray; font-size:xx-small">
+          Total Visitors: ${numVisit}<br>
+          <a href=https://github.com/kang-sw/WebStudy/tree/master/forum>Github: kang-sw</a>
         </div>
     </body>
 

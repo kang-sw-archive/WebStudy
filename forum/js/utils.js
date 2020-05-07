@@ -1,8 +1,7 @@
 console.log("loading utils module");
-module.exports = {
-  toRawText : toRawText
-};
-String.prototype.replaceAll = function(org, dest) { return this.split(org).join(dest); }
+module.exports.toRawText = toRawText;
+
+String.prototype.replaceAll = function(org, dest) { return this.split(org).join(dest); };
 
 function toRawText(str) {
   try {
@@ -14,3 +13,12 @@ function toRawText(str) {
   }
   return new String(str);
 }
+
+module.exports.hideIpStr = function(str) {
+  var ip = new String(str);
+  ip     = ip.substring(0, ip.lastIndexOf('.'));
+  ip     = ip.substring(0, ip.lastIndexOf('.'));
+  ip     = ip + ".xxx.xxx";
+  ip     = ip.substr(ip.lastIndexOf(':') + 1);
+  return ip;
+};

@@ -71,7 +71,8 @@
 #f_post_reply_marker {
     display: block;
     font-style: italic;
-    border-top: 1pt dashed;
+    border-top: 1pt dashed; 
+    padding-bottom: 10pt;
 }
 
 /* #f_post_replies {
@@ -80,12 +81,21 @@
 
 .f_post_reply {
     font-size: smaller;
+    display: flex;
 }
 
 .f_post_reply_name {
     display: inline-block;
-    width: 80px;
+    word-wrap: normal;
+    width: 220px;
     font-size: smaller;
+}
+
+.f_post_reply_args {
+    color: gray;
+    font-size: xx-small;
+    margin: auto;
+    margin-right: 10pt;
 }
 
 #forum_text {

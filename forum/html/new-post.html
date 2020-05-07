@@ -29,8 +29,7 @@
     display: block;
     margin: auto;
     margin-top: 10pt;
-    margin-right: 5%;
-    width: 44%;
+    width: 80%;
     border: solid 1pt;
   }
 </style>
@@ -80,8 +79,10 @@
   </div>
   <input type=submit id="submit_button" value="Post">
   <script>
-    document.getElementById('newpost-username').value = localStorage.userid;
-    document.getElementById('newpost-password').value = localStorage.password;
+    document.getElementById('newpost-username').value
+      = localStorage.userid ? localStorage.userid : "";
+    document.getElementById('newpost-password').value
+      = localStorage.password ? localStorage.password : "";
 
     $(document).ready(function () {
       $('#summernote').summernote({

@@ -48,8 +48,10 @@
     <input type=text name=userid placeholder="username" id=reply_username>
     <input type=password name=password placeholder="password" id=reply_password>
     <script>
-      document.getElementById('reply_username').value = localStorage.userid;
-      document.getElementById('reply_password').value = localStorage.password;
+      document.getElementById('reply_username').value 
+      = localStorage.userid ? localStorage.userid : "";
+      document.getElementById('reply_password').value 
+      = localStorage.password ? localStorage.password : "";
     </script>
   </span>
   <input type=text name=content>

@@ -1,9 +1,11 @@
-let fs    = require('fs');
-let cm    = require('./common');
-let util  = require('./utils');
-let posts = [];
+const http = require('http');
+const fs   = require('fs');
+const cm   = require('./common');
+const util = require('./utils');
+const xss  = require('xss');
+let posts  = [];
 
-// Load database
+// TODO: Load database
 if (true) {
   let postsArchive = fs.readFileSync('archive/posts.json');
   posts            = JSON.parse(postsArchive);
@@ -14,7 +16,8 @@ if (true) {
 // Assign forum event handler
 cm.pageHandler['forum'] = buildForumContent;
 
-// Assign event handler for new post incoming
+// Assign event for incoming post
+// Change method to use DB
 cm.postHandler['add-post'] = function(query, post, address) {
   console.log("new-post post handler called from " + address)
 
@@ -33,8 +36,9 @@ cm.postHandler['add-post'] = function(query, post, address) {
       'title' : util.toRawText(post.title).substr(0, 255),
       'author' : util.toRawText(post.userid).substr(0, 24),
       'pw' : post.password,
-      'content' : (post.content), //TODO: HTML verification required.
-      'replies' : []
+      'content' : xss(post.content), //TODO: HTML verification required.
+      'replies' : [],
+      'address' : address
     };
   console.log(newpost);
   posts.push(newpost);
@@ -44,13 +48,15 @@ cm.postHandler['add-post'] = function(query, post, address) {
     JSON.stringify(posts), (err) => {posts});
 };
 
-// Assign event for new reply incoming
+// Assign event for incoming reply
+// Change method to use DB
 cm.postHandler['new-reply'] = function(query, post, address) {
   var newreply = {
     'date' : new Date(Date.now()).toLocaleString(),
     'author' : util.toRawText(post.userid).substr(0, 24),
     'pw' : post.password,
-    'content' : util.toRawText(post.content)
+    'content' : util.toRawText(post.content),
+    'address' : address
   };
   console.log(newreply);
   console.log("   from " + address);
@@ -61,6 +67,8 @@ cm.postHandler['new-reply'] = function(query, post, address) {
     JSON.stringify(posts), (err) => {posts});
 };
 
+// Find post by index
+// Change post searching method to use DB
 function findForumPost(index, bAddView = false) {
   if (bAddView) {
     if (posts[index].view == undefined)
@@ -70,6 +78,11 @@ function findForumPost(index, bAddView = false) {
   return posts[index];
 }
 
+/**
+ * @summary Builds up forum contents
+ * @param {ParsedUrlQuery} query holds page and index information to display current post
+ * @returns {String} 
+ */
 function buildForumContent(query) {
   let content            = '';
   const postsPerPage     = 50;
@@ -98,6 +111,7 @@ function buildForumContent(query) {
     const post = findForumPost(index);
     let date   = new Date(post.date);
 
+    // List of posts
     content += /*html*/ `
         <div class="forum_post">
           <span class="forum_post_index"> ${index + 1}</span>
@@ -106,18 +120,20 @@ function buildForumContent(query) {
             onclick="sessionStorage.YScroll = document.scrollingElement.scrollTop;">
             ${post.title}
           </a>
-          <span class="forum_post_author"> by ${post.author}
+          <span class="forum_post_author"> by ${post.author} (${util.hideIpStr(post.address)})
           </span>`
 
+    // Show reply count only when it has comment
     if (post.replies.length > 0) {
       content += /*html*/ `
             <span class="forum_post_replies">
             [${post.replies.length}]</span>`
     }
 
+    // Show date and view count
     content += /*html */ `
             <span class="forum_post_date">
-             ${post.view} views ... ${date.toLocaleString()}</span>
+             ${post.view ? post.view : 0} views ... ${date.toLocaleString()}</span>
         </div>`
 
     if (postidx && index == postidx) {
@@ -140,8 +156,9 @@ function buildForumContent(query) {
         const reply = replies[index];
         content += /*html*/ `
         <div class="f_post_reply">
-          <span class="f_post_reply_name">${reply.author}</span> 
-          <span class="f_post_reply_content">${reply.content}</span>
+          <span class="f_post_reply_name">${reply.author} (${util.hideIpStr(reply.address)})</span> 
+          <span class="f_post_reply_content"> ${reply.content} </span>
+          <span class="f_post_reply_args"> ${reply.date} </span>
         </div>`;
       }
 
