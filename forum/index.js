@@ -1,8 +1,8 @@
 //! @todo. Implement Posting
 //! @todo. Implement Post View
 
-const ut      = require('./utils');
-const cm      = require('./common');
+const ut      = require('./js/utils');
+const cm      = require('./js/common');
 const http    = require('http');
 const fs      = require('fs');
 const url     = require('url');
@@ -11,7 +11,7 @@ const app     = cm.app;
 const express = cm.express;
 
 // Module sequential loading begins here
-require('./forum');
+require('./js/forum');
 
 // Open server
 app.listen(3000, function() { console.log("listen() finished") });
