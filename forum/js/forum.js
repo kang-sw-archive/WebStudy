@@ -36,10 +36,13 @@ cm.postHandler['add-post'] = function(query, post, address) {
       'title' : util.toRawText(post.title).substr(0, 255),
       'author' : util.toRawText(post.userid).substr(0, 24),
       'pw' : post.password,
-      'content' : xss(post.content), //TODO: HTML verification required.
+      'content' : post.content,
       'replies' : [],
       'address' : address
     };
+
+  // Apply xss guard
+  newpost.content = xss(newpost.content);
   console.log(newpost);
   posts.push(newpost);
 
@@ -113,7 +116,7 @@ function buildForumContent(query) {
 
     // List of posts
     content += /*html*/ `
-        <div class="forum_post">
+        <div class="forum_post" id="forum_post_${index}">
           <span class="forum_post_index"> ${index + 1}</span>
           <a class="forum_post_title"
             href="/?id=forum&page=${pageidx}&index=${index}"
@@ -145,7 +148,7 @@ function buildForumContent(query) {
         <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
         <script>
           document.scrollingElement.scrollTop = sessionStorage.YScroll;
-		      var offset = $("#f_post_title").offset();
+		      var offset = $("#forum_post_${index}").offset();
           $('html, body').animate({scrollTop : offset.top}, 10); 
         </script>
         <section id="f_post_replies">`;
