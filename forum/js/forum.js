@@ -1,8 +1,10 @@
-const fs   = require('fs');
-const cm   = require('./common');
-const util = require('./utils');
-const xss  = require('xss');
-let posts  = [];
+const fs         = require('fs');
+const cm         = require('./common');
+const util       = require('./utils');
+const xss        = require('xss');
+const app        = cm.app;
+const bodyParser = require('body-parser');
+let posts        = [];
 
 // TODO: Load database
 if (true) {
@@ -16,8 +18,11 @@ if (true) {
 cm.pageHandler['forum'] = buildForumContent;
 
 // Assign event for incoming post
-// Change method to use DB
-cm.postHandler['add-post'] = function(query, post, address) {
+// TODO: Change method to use DB
+app.post('/add-post', function(request, response) {
+  let query   = request.query;
+  let post    = request.body;
+  let address = cm.addressFromRequest(request);
   console.log("new-post post handler called from " + address)
 
   // Protect attack from same ip
@@ -45,14 +50,20 @@ cm.postHandler['add-post'] = function(query, post, address) {
   console.log(newpost);
   posts.push(newpost);
 
+  // TODO: Use DB
   fs.writeFile(
     'archive/posts.json',
     JSON.stringify(posts), (err) => {posts});
-};
+
+  cm.displayUrlContent(response, query, "");
+});
 
 // Assign event for incoming reply
-// Change method to use DB
-cm.postHandler['new-reply'] = function(query, post, address) {
+// TODO: Change method to use DB
+app.post('/new-reply', function(request, response) {
+  let query    = request.query;
+  let post     = request.body;
+  let address  = cm.addressFromRequest(request);
   var newreply = {
     'date' : new Date(Date.now()).toLocaleString(),
     'author' : util.toRawText(post.userid).substr(0, 24),
@@ -64,14 +75,18 @@ cm.postHandler['new-reply'] = function(query, post, address) {
   console.log("   from " + address);
   findForumPost(query.index).replies.push(newreply);
 
+  // TODO: Use DB
   fs.writeFile(
     'archive/posts.json',
     JSON.stringify(posts), (err) => {posts});
-};
+
+  cm.displayUrlContent(response, query, "");
+});
 
 // Find post by index
-// Change post searching method to use DB
+// TODO: Change post searching method to use DB
 function findForumPost(index, bAddView = false) {
+  // TODO: Use DB
   if (bAddView) {
     if (posts[index].view == undefined)
       posts[index].view = 0;
@@ -168,7 +183,7 @@ function buildForumContent(query) {
       content += '</section>';
 
       // Comment append section
-      content += fs.readFileSync('html/reply.html', 'utf8');
+      content += fs.readFileSync('public/html/reply.html', 'utf8');
 
       // End of current posting section
       content += '</section>';

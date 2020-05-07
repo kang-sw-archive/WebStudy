@@ -30,6 +30,8 @@
       localStorage.password = v.pw;
       let url = new String(self.action);
       sessionStorage.previous = url;
+      var idx = url.lastIndexOf('/');
+      url = url.slice(0, idx + 1) + "new-reply" + url.slice(idx + 1);
       url = url.replace("id=forum", "id=wait");
       url += "&postid=new-reply";
       self.action = url;
@@ -48,10 +50,10 @@
     <input type=text name=userid placeholder="username" id=reply_username>
     <input type=password name=password placeholder="password" id=reply_password>
     <script>
-      document.getElementById('reply_username').value 
-      = localStorage.userid ? localStorage.userid : "";
-      document.getElementById('reply_password').value 
-      = localStorage.password ? localStorage.password : "";
+      document.getElementById('reply_username').value
+        = localStorage.userid ? localStorage.userid : "";
+      document.getElementById('reply_password').value
+        = localStorage.password ? localStorage.password : "";
     </script>
   </span>
   <input type=text name=content>
