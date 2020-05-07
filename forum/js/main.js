@@ -7,11 +7,17 @@ let qs          = require('querystring');
 let posts       = [];
 let top         = fs.readFileSync('html/top.html', 'utf8');
 var postHandler = {};
+var users       = [];
+
+String.prototype.replaceAll = function(org, dest) {
+  return this.split(org).join(dest);
+}
 
 if (true) {
   let postsArchive = fs.readFileSync('archive/posts.json');
   posts            = JSON.parse(postsArchive);
   // console.log(posts);
+  console.log(toRawText("<>''L>"));
 }
 
 let app = http.createServer(function(request, response) {
@@ -36,7 +42,9 @@ let app = http.createServer(function(request, response) {
       console.log("Receiving post " + query.postid);
 
       if (postHandler[url_post]) {
-        postHandler[url_post](query, post, response);
+        postHandler[url_post](
+          query, post,
+          request.headers['x-forwarded-for'] || request.connection.remoteAddress);
       }
     });
   }
@@ -49,7 +57,7 @@ let app = http.createServer(function(request, response) {
       response.end(content);
     }
     catch (err) {
-      console.log("Given file " + _url + " does not exist, parsing query...");
+      console.log("Accessing " + _url + "...");
 
       if (_url != '/') {
         path = 'html/' + query.id + '.html';
@@ -76,15 +84,25 @@ let app = http.createServer(function(request, response) {
 });
 
 // Assign post events
-postHandler['add-post'] = function(query, post, response) {
-  console.log("new-post post handler called.");
+postHandler['add-post'] = function(query, post, address) {
+  console.log("new-post post handler called from " + address);
+
+  // Protect attack from same ip
+  var time     = users[address];
+  var timediff = new Number(Date.now()) - time;
+  if (time && timediff < 5000) {
+    console.log("Too fast post blocked from" + address + "timespan = " + timediff);
+    return;
+  }
+  users[address] = new Number(Date.now());
+
   var newpost =
     {
       'date' : new Date(Date.now()).toLocaleString(),
-      'title' : post.title,
-      'author' : post.userid,
+      'title' : toRawText(post.title).substr(0, 255),
+      'author' : toRawText(post.userid).substr(0, 24),
       'pw' : post.password,
-      'content' : post.content,
+      'content' : toRawText(post.content),
       'replies' : []
     };
   console.log(newpost);
@@ -95,14 +113,15 @@ postHandler['add-post'] = function(query, post, response) {
     JSON.stringify(posts), (err) => {posts});
 };
 
-postHandler['new-reply'] = function(query, post, response) {
+postHandler['new-reply'] = function(query, post, address) {
   var newreply = {
     'date' : new Date(Date.now()).toLocaleString(),
-    'author' : post.userid,
+    'author' : toRawText(post.userid).substr(0, 24),
     'pw' : post.password,
-    'content' : post.content
+    'content' : toRawText(post.content)
   };
   console.log(newreply);
+  console.log("   from " + address);
   findForumPost(query.index).replies.push(newreply);
 
   fs.writeFile(
@@ -143,7 +162,12 @@ function showContent(response, title, content) {
   response.end(template);
 }
 
-function findForumPost(index) {
+function findForumPost(index, bAddView = false) {
+  if (bAddView) {
+    if (posts[index].view == undefined)
+      posts[index].view = 0;
+    ++posts[index].view;
+  }
   return posts[index];
 }
 
@@ -166,36 +190,6 @@ function buildForumList(query) {
         <span id="forum">FORUM</span>
       </div>`;
 
-  // If currently reading any post ...
-  if (postidx) {
-    let post = findForumPost(postidx);
-    content += /*html*/ ` <section id="f_post">
-        <h3 id="f_post_title"> ${post.title} </h3>
-        <p id="f_post_content"> ${post.content} </p>
-        <span id="f_post_reply_marker">Replies</span>
-        <section id="f_post_replies">`;
-
-    // Build post replies
-    let replies = post.replies;
-    for (let index = 0; index < replies.length; index++) {
-      const reply = replies[index];
-      content += /*html*/ `
-        <div class="f_post_reply">
-          <span class="f_post_reply_name">${reply.author}</span> 
-          <span class="f_post_reply_content">${reply.content}</span>
-        </div>`;
-    }
-
-    // End of reply section
-    content += '</section>';
-
-    // Comment append section
-    content += fs.readFileSync('html/reply.html', 'utf8');
-
-    // End of current posting section
-    content += '</section>';
-  }
-
   // Build forum posts list
   for (let i = 0; i < postsPerPage; ++i) {
     const index = lastidx - page * postsPerPage - i;
@@ -209,7 +203,8 @@ function buildForumList(query) {
         <div class="forum_post">
           <span class="forum_post_index"> ${index + 1}</span>
           <a class="forum_post_title"
-            href="/?id=forum&page=${pageidx}&index=${index}">
+            href="/?id=forum&page=${pageidx}&index=${index}"
+            onclick="sessionStorage.YScroll = document.scrollingElement.scrollTop;">
             ${post.title}
           </a>
           <span class="forum_post_author"> by ${post.author}
@@ -223,8 +218,43 @@ function buildForumList(query) {
 
     content += /*html */ `
             <span class="forum_post_date">
-            ${date.toLocaleString()}</span>
+             ${post.view} views ... ${date.toLocaleString()}</span>
         </div>`
+
+    if (postidx && index == postidx) {
+      let post = findForumPost(postidx, true);
+      content += /*html*/ ` <section id="f_post">
+        <h3 id="f_post_title"> ${post.title} </h3>
+        <p id="f_post_content"> ${post.content} </p>
+        <span id="f_post_reply_marker">Replies</span>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        <script>
+          document.scrollingElement.scrollTop = sessionStorage.YScroll;
+		      var offset = $("#f_post_title").offset();
+          $('html, body').animate({scrollTop : offset.top}, 400); 
+        </script>
+        <section id="f_post_replies">`;
+
+      // Build post replies
+      let replies = post.replies;
+      for (let index = 0; index < replies.length; index++) {
+        const reply = replies[index];
+        content += /*html*/ `
+        <div class="f_post_reply">
+          <span class="f_post_reply_name">${reply.author}</span> 
+          <span class="f_post_reply_content">${reply.content}</span>
+        </div>`;
+      }
+
+      // End of reply section
+      content += '</section>';
+
+      // Comment append section
+      content += fs.readFileSync('html/reply.html', 'utf8');
+
+      // End of current posting section
+      content += '</section>';
+    }
   }
 
   // Add forum page indicator
@@ -250,4 +280,15 @@ function buildForumList(query) {
   // Close
   content += '</div>';
   return content;
+}
+
+function toRawText(str) {
+  try {
+    str = str.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("'", "&apos;").replaceAll('"', "&quot;").replaceAll("\n", "<br>");
+  }
+  catch (err) {
+    console.log("Burnt: " + str);
+    return "invalid";
+  }
+  return new String(str);
 }
