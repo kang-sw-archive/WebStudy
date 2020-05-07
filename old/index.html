@@ -1,0 +1,45 @@
+<!-- Typical header text -->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>My page</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <h1><a href="index.html">home</a></h1>
+    <div id="grid">
+        <ol id="nav">
+            <li><a href="1.html">Page 1</a></li>
+            <li><a href="2.html">Page 2</a></li>
+            <li><a href="3.html">Page 3</a></li>
+        </ol>
+        <div id="article">
+            <h2>Intro</h2>
+            <p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </p>
+            <input id='night_day' type="button" value="day" onclick="
+            var style = document.querySelector('body').style;
+            function swapColors(st, bg, fg)
+            {
+                st.backgroundColor = bg;
+                st.color = fg;
+                $('a').css('color', fg);
+                return 0;
+            }
+            if(this.value === 'day'){
+                swapColors(style, 'black', 'white');
+                this.value = 'night';
+            }
+            else{                
+                swapColors(style, 'white', 'black');
+                this.value = 'day';
+            }
+            ">
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,57 @@
+<style>
+  #post-reply-box {
+    margin-top: 11pt;
+    width: auto;
+    padding: 5pt;
+    display: flex;
+  }
+
+  .post-reply-userinfo {
+    display: flex;
+    flex-direction: column;
+    width: 80pt;
+  }
+</style>
+<script>
+  function postSubmit(self) {
+    function getval(name) { return document.getElementsByName(name).item(0).value; };
+    let v = {
+      id: getval('userid'),
+      pw: getval('password'),
+      content: getval('content')
+    };
+
+    if (v.id.length == 0 || v.pw.length == 0) {
+      alert("Name, Password must be at least 1 letters.");
+      return false;
+    }
+    else {
+      localStorage.userid = v.id;
+      localStorage.password = v.pw;
+      let url = new String(self.action);
+      sessionStorage.previous = url;
+      url = url.replace("id=forum", "id=wait");
+      url += "&postid=new-reply";
+      self.action = url;
+      return true;
+    }
+  }
+</script>
+<form id=post-reply-box method="post" onsubmit="return postSubmit(this);">
+  <style>
+    input {
+      margin: 2pt;
+      flex: auto;
+    }
+  </style>
+  <span class=post-reply-userinfo>
+    <input type=text name=userid placeholder="username" id=reply_username>
+    <input type=password name=password placeholder="password" id=reply_password>
+    <script>
+      document.getElementById('reply_username').value = localStorage.userid;
+      document.getElementById('reply_password').value = localStorage.password;
+    </script>
+  </span>
+  <input type=text name=content>
+  <input type="submit" value="Reply" style="width:60pt; flex:none">
+</form>

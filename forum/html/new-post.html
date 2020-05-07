@@ -1,0 +1,80 @@
+<style>
+  #new-post-form {
+    border: double 3pt;
+    padding: 10pt;
+  }
+
+  .new-post-desc-input {
+    display: flex;
+    width: 80%;
+    padding: 2pt;
+  }
+
+  .new-post-textbox {
+    flex-basis: 80%;
+  }
+
+  .new-post-description {
+    flex-basis: 80pt;
+  }
+
+  #new-post-content {
+    display: block;
+    width: 95%;
+    resize: vertical;
+    margin-top: 11pt;
+  }
+
+  #submit_button {
+    display: block;
+    margin: auto;
+    margin-top: 10pt;
+    margin-right: 5%;
+    width: 44%;
+    border: solid 1pt;
+  }
+</style>
+<script>
+  function postSubmit(self) {
+    function getval(name) { return document.getElementsByName(name).item(0).value; };
+    let v = {
+      id: getval('userid'),
+      pw: getval('password'),
+      title: getval('title')
+    };
+
+    if (v.id.length == 0 || v.pw.length == 0 || v.title.length == 0) {
+      alert("Name, Password, Title must be at least 1 letters.");
+      return false;
+    }
+    else {
+      sessionStorage.previous = "/?id=forum&page=1"
+      localStorage.userid = v.id;
+      localStorage.password = v.pw;
+      return true;
+    }
+  }
+</script>
+<form method=post action="/?id=wait&postid=add-post" id=new-post-form onsubmit="return postSubmit(this);">
+  <div class="new-post-desc-input">
+    <span class="new-post-description">Name</span>
+    <input type="text" name="userid" id='newpost-username' class="new-post-textbox">
+  </div>
+  <div class="new-post-desc-input">
+    <span class="new-post-description">Password</span>
+    <input type="password" name="password" id='newpost-password' class=new-post-textbox>
+  </div>
+  <div class="new-post-desc-input">
+    <span class="new-post-description">Title</span>
+    <input type="text" name="title" class=new-post-textbox>
+  </div>
+  <div>
+    Content
+    <textarea name="content" id="new-post-content"> </textarea>
+  </div>
+  <input type=submit id="submit_button" value="Post">
+  <script>
+    document.getElementById('newpost-username').value = localStorage.userid;
+    document.getElementById('newpost-password').value = localStorage.password;
+  </script>
+</form>

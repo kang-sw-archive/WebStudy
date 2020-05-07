@@ -1,0 +1,29 @@
+a {
+    text-decoration: none;
+}
+
+body {
+    margin: 0;
+}
+
+h1 {
+    text-align: center;
+    border-bottom: 1px solid gray;
+    margin: 0;
+}
+
+#nav {
+    border-right: 1px solid gray;
+    margin: 0px;
+    padding: 20px;
+    padding-left: 40px;
+}
+
+#grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+}
+
+#article {
+    padding: 25px;
+}
