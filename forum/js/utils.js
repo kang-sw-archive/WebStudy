@@ -18,7 +18,7 @@ module.exports.hideIpStr = function(str) {
   var ip = new String(str);
   ip     = ip.substring(0, ip.lastIndexOf('.'));
   ip     = ip.substring(0, ip.lastIndexOf('.'));
-  ip     = ip + ".xxx.xxx";
+  ip     = ip + ".x.x";
   ip     = ip.substr(ip.lastIndexOf(':') + 1);
   return ip;
 };
