@@ -1,0 +1,11 @@
+# ninja log v5
+1	2254	610650998	projects/echo/CMakeFiles/echoexec.dir/source/entry.cpp.obj	d6661597b803a713
+2264	3123	610650999	projects/echo/echoexec.exe	496603baf0e356c6
+12	2149	610651223	projects/echo/CMakeFiles/echoexec.dir/source/entry.cpp.obj	d6661597b803a713
+2149	2453	610651223	projects/echo/echoexec.exe	496603baf0e356c6
+13	2197	610651381	projects/echo/CMakeFiles/echoexec.dir/source/entry.cpp.obj	d6661597b803a713
+2197	2675	610651382	projects/echo/echoexec.exe	496603baf0e356c6
+13	2202	610651501	projects/echo/CMakeFiles/echoexec.dir/source/entry.cpp.obj	d6661597b803a713
+2203	2543	610651501	projects/echo/echoexec.exe	496603baf0e356c6
+15	2163	610651531	projects/echo/CMakeFiles/echoexec.dir/source/entry.cpp.obj	d6661597b803a713
+2163	2579	610651532	projects/echo/echoexec.exe	496603baf0e356c6

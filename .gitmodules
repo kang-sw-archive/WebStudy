@@ -1,0 +1,3 @@
+[submodule "websock/server/third/cpprestsdk"]
+	path = websock/server/third/cpprestsdk
+	url = https://github.com/Microsoft/cpprestsdk.git

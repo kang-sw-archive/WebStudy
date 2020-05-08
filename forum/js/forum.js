@@ -7,6 +7,8 @@ const bodyParser = require('body-parser');
 
 let xss = require('xss');
 
+const commentHtml = fs.readFileSync('public/html/reply.html', 'utf8');
+
 let numPosts = -1;
 db.query(
   ` SELECT COUNT(*) FROM posts 
@@ -240,7 +242,7 @@ function buildForumContent(query, OnFinishCallback) {
             ${post.title}
           </a>
           <span class="forum_post_author"> 
-            by ${post.author} (${util.hideIpStr(cm.binToIp(parseInt(post.ipaddr, 10)))})
+            by ${post.author_if_valid} (${util.hideIpStr(cm.binToIp(parseInt(post.ipaddr, 10)))})
           </span>`
 
       // Show reply count only when it has comment
@@ -257,6 +259,9 @@ function buildForumContent(query, OnFinishCallback) {
         </div>`
 
       if (postidx && post.id == postidx) {
+        // Add view count to post
+        db.query(`UPDATE posts SET viewcnt=${post.viewcnt + 1} WHERE id = ${post.id}`);
+
         content += /*html*/ ` <section id="f_post">
         <h3 id="f_post_title"> ${post.title} </h3>
         <p id="f_post_content"> 
@@ -264,9 +269,7 @@ function buildForumContent(query, OnFinishCallback) {
             String.prototype.replaceAll = function(org, dest) { return this.split(org).join(dest); };
             document.write(
               '${post.content}'
-              .replaceAll("&apos;", "'")
-              .replaceAll("&lt;", "<")
-              .replaceAll("&gt;", ">"));
+              .replaceAll("&apos;", "'"));
           </script>
         </p>
         <span id="f_post_reply_marker">Replies</span>
@@ -284,7 +287,7 @@ function buildForumContent(query, OnFinishCallback) {
           content += /*html*/ `
             <div class="f_post_reply">
               <span class="f_post_reply_name">
-                ${reply.author} (${util.hideIpStr(cm.binToIp(parseInt(reply.ipaddr, 10)))})
+                ${reply.author_if_valid} (${util.hideIpStr(cm.binToIp(parseInt(reply.ipaddr, 10)))})
               </span> 
               <span class="f_post_reply_content"> ${reply.content} </span>
               <span class="f_post_reply_args"> ${new Date(reply.issued).toLocaleString()} </span>
@@ -295,7 +298,7 @@ function buildForumContent(query, OnFinishCallback) {
         content += '</section>';
 
         // Comment append section
-        content += fs.readFileSync('public/html/reply.html', 'utf8');
+        content += commentHtml;
 
         // End of current posting section
         content += '</section>';
