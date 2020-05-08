@@ -2,9 +2,22 @@ const fs         = require('fs');
 const bodyParser = require('body-parser');
 const util       = require('./utils');
 
+/** 
+ * @callback contentGenerationDoneCallback
+ * @param {string} content
+ */
+/**
+ * @callback pageHandlerCallback
+ * @param {ParsedUrlQuery} query
+ * @param {contentGenerationDoneCallback} onFinish
+ */
+/**
+ * @type {Map<string, pageHandlerCallback>}
+ */
+module.exports.pageHandler = {};
+
 module.exports.express            = require('express');
 module.exports.app                = module.exports.express();
-module.exports.pageHandler        = {};
 module.exports.users              = {};
 module.exports.numVisit           = {};
 module.exports.addressFromRequest = (request) => { return request.headers['x-forwarded-for'] || request.connection.remoteAddress; };
@@ -38,8 +51,9 @@ function displayUrlContent(response, query, contentFilePath) {
       }
 
       if (module.exports.pageHandler[query.id]) {
-        content = module.exports.pageHandler[query.id](query);
-        showContent(response, title, content);
+        module.exports.pageHandler[query.id](query, function(content) {
+          showContent(response, title, content);
+        });
       }
       else {
         fs.readFile(path, 'utf8', function(err, data) {

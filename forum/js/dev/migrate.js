@@ -56,7 +56,6 @@ var archive     = fs.readFileSync('archive/posts.json');
 var arch_json   = JSON.parse(archive);
 var sha256      = require('sha256');
 var post_number = 0;
-var numQuery    = 0;
 
 arch_json.forEach(function(post) {
   ++post_number;
@@ -75,19 +74,21 @@ arch_json.forEach(function(post) {
     values.push(`'${new String(pair[1]).replaceAll("'", '&apos;')}'`);
   });
 
-  ++numQuery;
+  var inst = {postnum : post_number};
+
   db.query(
     `INSERT INTO posts(${columns.join()}) VALUES(${values.join()})`,
     function(err, result, field) {
       if (err)
         throw err;
 
-      console.log(result);
+      console.log("Insert post ", result.insertId, "postnum ", this[0][1]);
       if (post.replies) {
         var postid = result.insertId;
         post.replies.forEach(function(reply) {
-          var datapairs =
-            [ [ 'post_number', post_number ],
+          var postnum = this[0][1];
+          var datapairs2 =
+            [ [ 'post_number', postnum ],
               [ 'parent_id', postid ],
               [ 'ipaddr', reply.address ? cm.ipToBin(reply.address) : '0' ],
               [ 'issued', reply.date ],
@@ -95,7 +96,7 @@ arch_json.forEach(function(post) {
               [ 'pw_if_annonymous', sha256(reply.password ? reply.password : "undefined") ],
               [ 'content', reply.content ? reply.content : " " ] ];
           var columns = [], values = [];
-          datapairs.forEach(function(pair) {
+          datapairs2.forEach(function(pair) {
             columns.push(pair[0]);
             values.push(`'${new String(pair[1]).replaceAll("'", '&apos;')}'`);
           });
@@ -103,14 +104,12 @@ arch_json.forEach(function(post) {
           db.query(
             `INSERT INTO posts(${columns.join()}) VALUES(${values.join()})`,
             function(err, result, field) {
-              console.log(result);
-            });
-        });
-      }
+              if (err)
+                throw err;
 
-      if (--numQuery == 0) {
-        console.log('finished.');
-        db.end();
+              console.log("Insert reply ", result.insertId, " --> ", this[0][1]);
+            }.bind(datapairs2));
+        }.bind(this));
       }
-    });
+    }.bind(datapairs));
 });

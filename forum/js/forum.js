@@ -1,4 +1,5 @@
 const fs         = require('fs');
+const db         = require('./query');
 const cm         = require('./common');
 const util       = require('./utils');
 const xss        = require('xss');
@@ -51,9 +52,6 @@ app.post('/add-post', function(request, response) {
   posts.push(newpost);
 
   // TODO: Use DB
-  fs.writeFile(
-    'archive/posts.json',
-    JSON.stringify(posts), (err) => {posts});
 
   cm.displayUrlContent(response, query, "");
 });
@@ -84,23 +82,80 @@ app.post('/new-reply', function(request, response) {
 });
 
 // Find post by index
-// TODO: Change post searching method to use DB
 function findForumPost(index, bAddView = false) {
-  // TODO: Use DB
   if (bAddView) {
-    if (posts[index].view == undefined)
-      posts[index].view = 0;
-    ++posts[index].view;
+    // TODO: Add view count to posting
+    console.log("adding viewcount to ", index);
   }
+
   return posts[index];
 }
 
 /**
- * @summary Builds up forum contents
- * @param {ParsedUrlQuery} query holds page and index information to display current post
- * @returns {String} 
+ * @callback findForumPostsCallback
+ * @param {Array<any>} posts
+ * @param {Array<any>} replies
  */
-function buildForumContent(query) {
+
+/**
+ * 
+ * @param {number} fromIndex
+ * @param {number} numPosts 
+ * @param {findForumPostsCallback} onFoundCallback 
+ */
+function findForumPosts(fromIndex, numPosts, onFoundCallback) {
+  db.query(
+    `SELECT * FROM posts WHERE title IS NOT NULL LIMIT ${fromIndex},${numPosts}`,
+    function(err, results, fields) {
+      if (err)
+        throw err;
+
+      var postidx  = [];
+      var idxTable = new Map();
+      var idx      = 0;
+      var posts    = results;
+      var replies  = [...Array(numPosts) ].map(x => Array(0));
+
+      results.forEach(element => {
+        postidx.push(`${element.post_number}`);
+        idxTable[element.id] = idx++;
+      });
+
+      db.query(
+        `SELECT * FROM posts 
+         WHERE title IS NULL
+           AND post_number IN(${postidx.join()})
+         ORDER BY parent_id, issued`,
+        function(err, results, fields) {
+          if (err)
+            throw err;
+
+          //
+          results.forEach(element => {
+            var repliedMappedIdx = idxTable[element.parent_id];
+            replies[repliedMappedIdx].push(element);
+          });
+
+          onFoundCallback(posts, replies);
+        });
+    });
+}
+
+// Test forum search
+findForumPosts(0, 20, function(posts, replies) {
+  console.log("Tried to read 20 posts, read", posts.length, "posts and", function() {
+    var val = 0;
+    replies.forEach(elem => {val += elem.length});
+    return val;
+  }(), "replies");
+});
+
+/**
+ * 
+ * @param {ParsedUrlQuery} query 
+ * @param {cm.contentGenerationDoneCallback} OnFinishCallback 
+ */
+function buildForumContent(query, OnFinishCallback) {
   let content            = '';
   const postsPerPage     = 50;
   const pageDisplayRange = 7;
@@ -212,5 +267,5 @@ function buildForumContent(query) {
 
   // Close
   content += '</div>';
-  return content;
+  OnFinishCallback(content);
 }

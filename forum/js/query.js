@@ -9,3 +9,8 @@ const db    = mysql.createConnection(
   });
 
 module.exports = db;
+console.log(db.state);
+db.connect();
+console.log(db.state);
+
+console.log("Database connected.");
