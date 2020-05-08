@@ -222,7 +222,7 @@ function buildForumContent(query, OnFinishCallback) {
                 ${reply.author} (${util.hideIpStr(reply.ipaddr)})
               </span> 
               <span class="f_post_reply_content"> ${reply.content} </span>
-              <span class="f_post_reply_args"> ${reply.issued} </span>
+              <span class="f_post_reply_args"> ${new Date(reply.issued).toLocaleString()} </span>
             </div>`;
         }
 
