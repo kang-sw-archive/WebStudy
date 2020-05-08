@@ -12,12 +12,13 @@
     width: 80pt;
   }
 </style>
+<script src="/js/sha256.js"></script>
 <script>
   function postSubmit(self) {
-    function getval(name) { return document.getElementsByName(name).item(0).value; };
+    function getval(name) { return document.getElementsByName(name).item(0); };
     let v = {
-      id: getval('userid'),
-      pw: getval('password'),
+      id: getval('userid').value,
+      pw: getval('password').value,
       content: getval('content')
     };
 
@@ -35,6 +36,7 @@
       url = url.replace("id=forum", "id=wait");
       url += "&postid=new-reply";
       self.action = url;
+      getval('password').value = SHA256(v.pw);
       return true;
     }
   }

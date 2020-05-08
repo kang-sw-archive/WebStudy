@@ -34,12 +34,13 @@
   }
 </style>
 <link rel="stylesheet" href="/js/summernote/summernote-lite.css">
+<script src="/js/sha256.js"></script>
 <script>
   function postSubmit(self) {
-    function getval(name) { return document.getElementsByName(name).item(0).value; };
+    function getval(name) { return document.getElementsByName(name).item(0); };
     let v = {
-      id: getval('userid'),
-      pw: getval('password'),
+      id: getval('userid').value,
+      pw: getval('password').value,
       title: getval('title')
     };
 
@@ -51,6 +52,7 @@
       sessionStorage.previous = "/?id=forum&page=1"
       localStorage.userid = v.id;
       localStorage.password = v.pw;
+      getval('password').value = SHA256(v.pw);
       return true;
     }
   }

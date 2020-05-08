@@ -7,16 +7,17 @@ const app        = cm.app;
 const bodyParser = require('body-parser');
 
 let numPosts = -1;
-db.query(`
-  SELECT COUNT(*) FROM posts 
+db.query(
+  ` SELECT COUNT(*) FROM posts 
     WHERE author_if_valid IS NOT NULL 
-      AND title IS NOT NULL`,
-         function(err, res, fld) {
-           if (err)
-             throw err;
-           numPosts = res[0]['COUNT(*)'];
-           console.log("Number of Posts: ", numPosts);
-         });
+      AND title IS NOT NULL 
+    `,
+  function(err, res, fld) {
+    if (err)
+      throw err;
+    numPosts = res[0]['COUNT(*)'];
+    console.log("Number of Posts: ", numPosts);
+  });
 
 // Assign forum event handler
 cm.pageHandler['forum'] = buildForumContent;
@@ -40,23 +41,25 @@ app.post('/add-post', function(request, response) {
 
   var newpost =
     {
-      'date' : new Date(Date.now()).toLocaleString(),
-      'title' : util.toRawText(post.title).substr(0, 255),
-      'author' : util.toRawText(post.userid).substr(0, 24),
-      'pw' : post.password,
+      'issued' : new Date(Date.now()).toLocaleString(),
+      'title' : util.toRawText(post.title).substr(0, 80),
+      'author_if_valid' : util.toRawText(post.userid).substr(0, 16),
+      'pw_if_annonymous' : post.password.substr(0, 64),
       'content' : post.content,
-      'replies' : [],
-      'address' : address
+      'ipaddr' : cm.ipToBin(address)
     };
 
   // Apply xss guard
-  newpost.content = xss(newpost.content);
-  console.log(newpost);
-  posts.push(newpost);
+  new Promise((resolve, reject) => {
+    newpost.content = xss(newpost.content).replaceAll("'", "&apos;");
+    Object.values(newpost).forEach(elem => {elem = `'${elem}'`});
+    console.log(newpost);
 
-  // TODO: Use DB
-  numPosts++;
-  cm.displayUrlContent(response, query, "");
+    // TODO: Use DB
+    numPosts++;
+
+    cm.displayUrlContent(response, query, "");
+  });
 });
 
 // Assign event for incoming reply
