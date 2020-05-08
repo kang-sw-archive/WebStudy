@@ -1,5 +1,6 @@
-let fs           = require('fs');
+const fs         = require('fs');
 const bodyParser = require('body-parser');
+const util       = require('./utils');
 
 module.exports.express            = require('express');
 module.exports.app                = module.exports.express();
@@ -82,4 +83,34 @@ function showContent(response, title, content) {
 
   response.writeHead(200);
   response.end(template);
+}
+
+module.exports.ipToBin =
+  function(ipStr) {
+  var s = new String(ipStr);
+  s     = s.slice(s.lastIndexOf(':') + 1);
+
+  var shift  = 0;
+  var result = 0;
+  s.split('.').forEach(
+    function(str) {
+      result += Math.abs(new Number(str) << shift);
+      shift += 8;
+    });
+
+  return result;
+};
+
+module.exports.binToIp =
+  function(ipBin) {
+  var shift  = 0;
+  var result = [];
+
+  for (var i = 0; i < 4; ++i) {
+    var value = (ipBin & (0xff << shift)) >> shift;
+    result.push(`${value}`);
+    shift += 8;
+  }
+
+  return result.join('.');
 }

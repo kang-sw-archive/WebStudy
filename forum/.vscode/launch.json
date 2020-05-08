@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceRoot}/js/main.js"
+            "program": "${workspaceRoot}/js/dev/migrate.js"
         }
     ]
 }

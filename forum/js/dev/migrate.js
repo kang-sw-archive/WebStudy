@@ -4,6 +4,7 @@
  */
 const fs    = require('fs');
 const mysql = require('mysql');
+const cm    = require('../common');
 
 const db = mysql.createConnection(
   {
@@ -18,26 +19,98 @@ db.connect();
 
 /* SQL table initialization ... verify this!
 If password is null, author info will be used to identify signed user.
-If author is null, that post is removed one.
-
-CREATE TABLE posts (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  parent_id BIGINT DEFAULT NULL,
-  post_number INT NOT NULL,
-  ipaddr BINARY(16) NOT NULL,
-  issued DATETIME NOT NULL,
-  author VARCHAR(24) DEFAULT NULL,
-  pw_if_annonymous CHAR(32) DEFAULT NULL,
-  content MEDIUMTEXT NOT NULL,
-  PRIMARY KEY(id)
-);
+If author is null, that post is removed one. 
+If title is null, it is reply.
 */
 
+// Post has ...
+/* 
+    {
+        "date": "2020-5-8 11:05:05",
+        "title": "qwew",
+        "author": "DD",
+        "pw": "qqq",
+        "content": "<p>dafe</p>",
+        "replies": [
+            {
+                "date": "2020-5-8 11:05:08",
+                "author": "DD",
+                "pw": "qqq",
+                "content": "bca",
+                "address": "::ffff:172.30.1.254"
+            },
+            {
+                "date": "2020-5-8 11:05:10",
+                "author": "DD",
+                "pw": "qqq",
+                "content": "fferf",
+                "address": "::ffff:172.30.1.254"
+            }
+        ],
+        "address": "::ffff:172.30.1.254",
+        "view": 2
+    }
+*/
 // Firstly read all posts from .json
-var archive   = fs.readFileSync('archive/posts.json');
-var arch_json = JSON.parse(archive);
+var archive     = fs.readFileSync('archive/posts.json');
+var arch_json   = JSON.parse(archive);
+var sha256      = require('sha256');
+var post_number = 0;
+var numQuery    = 0;
 
 arch_json.forEach(function(post) {
+  ++post_number;
+  var datapairs =
+    [ [ 'post_number', post_number ],
+      [ 'ipaddr', post.address ? cm.ipToBin(post.address) : '0' ],
+      [ 'issued', post.date ],
+      [ 'author_if_valid', (post.author ? post.author : "annonymous").substr(0, 16) ],
+      [ 'pw_if_annonymous', sha256(post.password ? post.password : "undefined") ],
+      [ 'content', (post.content ? post.content : " ") ],
+      [ 'title', (post.title ? post.title : "undefined").substr(0, 80) ] ];
 
+  var columns = [], values = [];
+  datapairs.forEach(function(pair) {
+    columns.push(pair[0]);
+    values.push(`'${new String(pair[1]).replaceAll("'", '&apos;')}'`);
+  });
+
+  ++numQuery;
+  db.query(
+    `INSERT INTO posts(${columns.join()}) VALUES(${values.join()})`,
+    function(err, result, field) {
+      if (err)
+        throw err;
+
+      console.log(result);
+      if (post.replies) {
+        var postid = result.insertId;
+        post.replies.forEach(function(reply) {
+          var datapairs =
+            [ [ 'post_number', post_number ],
+              [ 'parent_id', postid ],
+              [ 'ipaddr', reply.address ? cm.ipToBin(reply.address) : '0' ],
+              [ 'issued', reply.date ],
+              [ 'author_if_valid', (reply.author ? reply.author : "annonymous").substr(0, 16) ],
+              [ 'pw_if_annonymous', sha256(reply.password ? reply.password : "undefined") ],
+              [ 'content', reply.content ? reply.content : " " ] ];
+          var columns = [], values = [];
+          datapairs.forEach(function(pair) {
+            columns.push(pair[0]);
+            values.push(`'${new String(pair[1]).replaceAll("'", '&apos;')}'`);
+          });
+
+          db.query(
+            `INSERT INTO posts(${columns.join()}) VALUES(${values.join()})`,
+            function(err, result, field) {
+              console.log(result);
+            });
+        });
+      }
+
+      if (--numQuery == 0) {
+        console.log('finished.');
+        db.end();
+      }
+    });
 });
-db.end();
