@@ -19,35 +19,39 @@ function displayUrlContent(response, query, contentFilePath) {
   let path    = 'public/html/home.html';
 
   // If given file exists, simply load it.
-  if (fs.existsSync(contentFilePath)) {
-    content = fs.readFileSync(contentFilePath);
-    response.writeHead(200);
-    response.end(content);
-  }
-  else {
-
-    if (query.id != undefined) {
-      path = 'public/html/' + query.id + '.html';
+  fs.exists(contentFilePath, function(exists) {
+    if (exists) {
+      fs.readFile(contentFilePath, function(err, Buffer) {
+        if (err)
+          throw err;
+        response.writeHead(200);
+        response.end(Buffer);
+      });
     }
     else {
-      title = "home";
-    }
-
-    try {
-      if (module.exports.pageHandler[query.id]) {
-        content = module.exports.pageHandler[query.id](query);
+      if (query.id != undefined) {
+        path = 'public/html/' + query.id + '.html';
       }
       else {
-        content = fs.readFileSync(path, 'utf8');
+        title = "home";
+      }
+
+      if (module.exports.pageHandler[query.id]) {
+        content = module.exports.pageHandler[query.id](query);
+        showContent(response, title, content);
+      }
+      else {
+        fs.readFile(path, 'utf8', function(err, data) {
+          if (err) {
+            console.log(err);
+            return;
+          }
+
+          showContent(response, title, data);
+        });
       }
     }
-    catch (err) {
-      console.log(err);
-      content = 'ERROR 404';
-    }
-  }
-
-  showContent(response, title, content);
+  });
 }
 
 const top = fs.readFileSync('public/html/top.html', 'utf8');
