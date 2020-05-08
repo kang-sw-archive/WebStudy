@@ -18,9 +18,7 @@ const db = mysql.createConnection(
 db.connect();
 
 /* SQL table initialization ... verify this!
-If password is null, author info will be used to identify signed user.
-If author is null, that post is removed one. 
-If title is null, it is reply.
+If password is null, author info will be used to identify signed user. If author is null, that post is removed one.  If title is null, it is reply.
 */
 
 // Post has ...

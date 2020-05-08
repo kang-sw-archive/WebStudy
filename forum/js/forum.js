@@ -5,15 +5,18 @@ const util       = require('./utils');
 const xss        = require('xss');
 const app        = cm.app;
 const bodyParser = require('body-parser');
-let posts        = [];
 
-// TODO: Load database
-if (true) {
-  let postsArchive = fs.readFileSync('archive/posts.json');
-  posts            = JSON.parse(postsArchive);
-  // console.log(posts);
-  console.log(util.toRawText("<>''L>"));
-}
+let numPosts = -1;
+db.query(`
+  SELECT COUNT(*) FROM posts 
+    WHERE author_if_valid IS NOT NULL 
+      AND title IS NOT NULL`,
+         function(err, res, fld) {
+           if (err)
+             throw err;
+           numPosts = res[0]['COUNT(*)'];
+           console.log("Number of Posts: ", numPosts);
+         });
 
 // Assign forum event handler
 cm.pageHandler['forum'] = buildForumContent;
@@ -52,7 +55,7 @@ app.post('/add-post', function(request, response) {
   posts.push(newpost);
 
   // TODO: Use DB
-
+  numPosts++;
   cm.displayUrlContent(response, query, "");
 });
 
@@ -71,25 +74,9 @@ app.post('/new-reply', function(request, response) {
   };
   console.log(newreply);
   console.log("   from " + address);
-  findForumPost(query.index).replies.push(newreply);
-
-  // TODO: Use DB
-  fs.writeFile(
-    'archive/posts.json',
-    JSON.stringify(posts), (err) => {posts});
 
   cm.displayUrlContent(response, query, "");
 });
-
-// Find post by index
-function findForumPost(index, bAddView = false) {
-  if (bAddView) {
-    // TODO: Add view count to posting
-    console.log("adding viewcount to ", index);
-  }
-
-  return posts[index];
-}
 
 /**
  * @callback findForumPostsCallback
@@ -105,7 +92,10 @@ function findForumPost(index, bAddView = false) {
  */
 function findForumPosts(fromIndex, numPosts, onFoundCallback) {
   db.query(
-    `SELECT * FROM posts WHERE title IS NOT NULL LIMIT ${fromIndex},${numPosts}`,
+    ` SELECT * FROM posts 
+      WHERE title IS NOT NULL 
+      ORDER BY id DESC
+      LIMIT ${fromIndex},${numPosts}`,
     function(err, results, fields) {
       if (err)
         throw err;
@@ -160,8 +150,6 @@ function buildForumContent(query, OnFinishCallback) {
   const postsPerPage     = 50;
   const pageDisplayRange = 7;
   const pageidx          = query.page;
-  const lastidx          = posts.length - 1;
-  const page             = pageidx - 1;
   const postidx          = query.index;
 
   content += /*html*/ `
@@ -174,17 +162,20 @@ function buildForumContent(query, OnFinishCallback) {
         <span id="forum">FORUM</span>
       </div>`;
 
-  // Build forum posts list
-  for (let i = 0; i < postsPerPage; ++i) {
-    const index = lastidx - page * postsPerPage - i;
-    if (index < 0)
-      break;
+  // Find posts
+  findForumPosts((pageidx - 1) * postsPerPage, postsPerPage, function(posts, allreply) {
+    // Build forum posts list
+    for (let i = 0; i < posts.length; ++i) {
+      var post    = posts[i];
+      var replies = allreply[i];
+      var index   = post.post_number;
+      if (index < 0)
+        break;
 
-    const post = findForumPost(index);
-    let date   = new Date(post.date);
+      let date = new Date(post.issued);
 
-    // List of posts
-    content += /*html*/ `
+      // List of posts
+      content += /*html*/ `
         <div class="forum_post" id="forum_post_${index}">
           <span class="forum_post_index"> ${index + 1}</span>
           <a class="forum_post_title"
@@ -192,25 +183,25 @@ function buildForumContent(query, OnFinishCallback) {
             onclick="sessionStorage.YScroll = document.scrollingElement.scrollTop;">
             ${post.title}
           </a>
-          <span class="forum_post_author"> by ${post.author} (${util.hideIpStr(post.address)})
+          <span class="forum_post_author"> 
+            by ${post.author} (${util.hideIpStr(cm.binToIp(post.ipaddr))})
           </span>`
 
-    // Show reply count only when it has comment
-    if (post.replies.length > 0) {
-      content += /*html*/ `
+      // Show reply count only when it has comment
+      if (replies.length > 0) {
+        content += /*html*/ `
             <span class="forum_post_replies">
-            [${post.replies.length}]</span>`
-    }
+            [${replies.length}]</span>`
+      }
 
-    // Show date and view count
-    content += /*html */ `
+      // Show date and view count
+      content += /*html */ `
             <span class="forum_post_date">
-             ${post.view ? post.view : 0} views ... ${date.toLocaleString()}</span>
+             ${post.viewcnt ? post.viewcnt : 0} views ... ${date.toLocaleString()}</span>
         </div>`
 
-    if (postidx && index == postidx) {
-      let post = findForumPost(postidx, true);
-      content += /*html*/ ` <section id="f_post">
+      if (postidx && index == postidx) {
+        content += /*html*/ ` <section id="f_post">
         <h3 id="f_post_title"> ${post.title} </h3>
         <p id="f_post_content"> ${post.content} </p>
         <span id="f_post_reply_marker">Replies</span>
@@ -222,50 +213,52 @@ function buildForumContent(query, OnFinishCallback) {
         </script>
         <section id="f_post_replies">`;
 
-      // Build post replies
-      let replies = post.replies;
-      for (let index = 0; index < replies.length; index++) {
-        const reply = replies[index];
-        content += /*html*/ `
-        <div class="f_post_reply">
-          <span class="f_post_reply_name">${reply.author} (${util.hideIpStr(reply.address)})</span> 
-          <span class="f_post_reply_content"> ${reply.content} </span>
-          <span class="f_post_reply_args"> ${reply.date} </span>
-        </div>`;
+        // Build post replies
+        for (let index = 0; index < replies.length; index++) {
+          const reply = replies[index];
+          content += /*html*/ `
+            <div class="f_post_reply">
+              <span class="f_post_reply_name">
+                ${reply.author} (${util.hideIpStr(reply.ipaddr)})
+              </span> 
+              <span class="f_post_reply_content"> ${reply.content} </span>
+              <span class="f_post_reply_args"> ${reply.issued} </span>
+            </div>`;
+        }
+
+        // End of reply section
+        content += '</section>';
+
+        // Comment append section
+        content += fs.readFileSync('public/html/reply.html', 'utf8');
+
+        // End of current posting section
+        content += '</section>';
       }
-
-      // End of reply section
-      content += '</section>';
-
-      // Comment append section
-      content += fs.readFileSync('public/html/reply.html', 'utf8');
-
-      // End of current posting section
-      content += '</section>';
     }
-  }
 
-  // Add forum page indicator
-  content += '<div class="forum_page_idx">';
-  for (let index = Math.max(1, pageidx - pageDisplayRange),
-           end   = Math.min(posts.length / postsPerPage + 1,
-                          pageidx + pageDisplayRange + 1);
-       index < end; ++index) {
-    if (index == pageidx) {
-      content += `
+    // Add forum page indicator
+    content += '<div class="forum_page_idx">';
+    for (let index = Math.max(1, pageidx - pageDisplayRange),
+             end   = Math.min(numPosts / postsPerPage + 1,
+                            pageidx + pageDisplayRange + 1);
+         index < end; ++index) {
+      if (index == pageidx) {
+        content += `
         <span class="forum_page_idx_current">[${index}]</span>`;
-    }
-    else {
-      content += /*html*/ `
+      }
+      else {
+        content += /*html*/ `
         <a  class="forum_page_idx_instance"
             href="/?id=forum&page=${index}">
         [${index}]
         </a>`;
+      }
     }
-  }
-  content += '</div>';
+    content += '</div>';
 
-  // Close
-  content += '</div>';
-  OnFinishCallback(content);
+    // Close
+    content += '</div>';
+    OnFinishCallback(content);
+  });
 }
