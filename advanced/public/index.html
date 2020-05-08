@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"> {{ message }} </div>
+  <div id="btn">
+    <p>{{area}}</p>
+    <button v-on:click="onClick">Fetch</button>
+  </div>
+  <script>
+    var app = new Vue({ el: "#app", data: { message: "hello!" } });
+    var btn = new Vue({
+      el: "#btn",
+      data: { area: 'empty' },
+      methods: {
+        onClick: () => {
+          fetch('/posts/?id')
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              }
+              throw new Error('Failed to fetch data');
+            })
+            .then((json) => {
+              btn.area = json;
+            });
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
