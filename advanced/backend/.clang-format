@@ -17,7 +17,7 @@ AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: All
 AllowShortLambdasOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
+AllowShortLoopsOnASingleLine: true
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
@@ -29,7 +29,7 @@ BraceWrapping:
   AfterClass:      false
   AfterControlStatement: false
   AfterEnum:       false
-  AfterFunction:   false
+  AfterFunction:   true
   AfterNamespace:  false
   AfterObjCDeclaration: false
   AfterStruct:     false
@@ -54,8 +54,8 @@ ColumnLimit:     0
 CommentPragmas:  '^ IWYU pragma:'
 CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
-ConstructorInitializerIndentWidth: 4
-ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
 Cpp11BracedListStyle: true
 DeriveLineEnding: true
 DerivePointerAlignment: false

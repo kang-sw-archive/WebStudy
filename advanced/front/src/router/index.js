@@ -1,5 +1,6 @@
 import Home from '@/components/pages/Home'
 import InfoPage from '@/components/pages/InfoPage'
+import ForumTest from '@/components/test/ForumTest'
 import Vue from 'vue'
 import Router from 'vue-router'
 
@@ -17,6 +18,11 @@ export default new Router({
       path: '/info',
       name: 'Info',
       component: InfoPage
+    },
+    {
+      path: '/forum',
+      name: 'Info',
+      component: ForumTest
     }
   ]
 })

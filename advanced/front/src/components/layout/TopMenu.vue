@@ -54,7 +54,7 @@
     <div id="area">
       <span id="menus">
         <a class="entry" href="/">Home</a>
-        <a class="entry" href="/forums/">Forums</a>
+        <a class="entry" href="/forum/">Forums</a>
         <a href="/" id="imgarea">
           <img id="logoimg" class="entry" src="@/assets/logo.gif" />
         </a>
