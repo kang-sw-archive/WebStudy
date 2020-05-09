@@ -10,7 +10,7 @@ let forumPostCounts = [];
 
 module.exports = {
   asyncQuery,
-  searchForumPosts,
+  searchForumPosts : fetchForumPosts,
   addPosts,
   updateForumPostCounts,
   numPostsOfForum : function(index) { return forumPostCounts[index]; },
@@ -56,7 +56,7 @@ function asyncQuery(queryStr)
  * @returns {Promise<{posts:Array<PostDescriptor>}}
  * @todo Impelment usage of forumIndex
  */
-async function searchForumPosts(
+async function fetchForumPosts(
   forumIndex,
   postIndex,
   numPosts,
@@ -88,7 +88,7 @@ async function searchForumPosts(
 }
 
 (async function() {
-  var posts = await searchForumPosts(0, 0, 50);
+  var posts = await fetchForumPosts(0, 0, 50);
   log(posts);
 });
 
