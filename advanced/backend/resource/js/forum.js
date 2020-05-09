@@ -35,66 +35,62 @@ function asyncQuery(queryStr)
       })});
 }
 
+/** @typedef {{
+      id:number,
+      parent_id_if_exists: ?number,
+      forum_number: number,
+      forum_post_number: number,
+      title: string,
+      author: string,
+      pw_if_anonym: string,
+      content:string,
+      date:string,
+      num_replies: number
+    }} PostDescriptor */
+
 /**
  * 
  * @param {number} forumIndex Identifier of forum to search
  * @param {number} postIndex Index of post to start read
  * @param {number} numPosts Number of posts to read out.
- * @returns {Promise<{posts:Array<any>, replies: Array<any>}}
+ * @returns {Promise<{posts:Array<PostDescriptor>}}
  * @todo Impelment usage of forumIndex
  */
 async function searchForumPosts(
   forumIndex,
   postIndex,
-  numPosts)
+  numPosts,
+  bShouldIncludePw = false)
 {
 
   try {
     // Gather posts
-    var postQueryResult = await asyncQuery(
-      `SELECT * FROM ${forums} 
-        WHERE title IS NOT NULL
-          AND author_if_valid IS NOT NULL
-          AND parent_id IS NULL
-        ORDER BY post_number DESC
+    var qryRes = await asyncQuery(
+      `SELECT 
+            ${bShouldIncludePw ? 'pw_if_anonym,' : ''}
+            id, parent_id_if_exists, forum_number,
+            forum_post_number,
+            title,
+            author,
+            content,
+            date,
+            num_replies 
+        FROM ${tbl_post} 
+        WHERE is_removed = 0
+          AND parent_id_if_exists IS NULL
+        ORDER BY forum_post_number DESC
         LIMIT ${postIndex}, ${numPosts}`);
-    let posts = postQueryResult.results;
-
-    // Gather post indices
-    let idxtbl = new Map();
-    let idxstr = [];
-    let idx    = 0;
-
-    posts.forEach(
-      e => { idxtbl[e.post_number] = ++idx, idxstr.push(e.post_number); });
-
-    // Gather comments
-    var replyQueryResult = await asyncQuery(
-      `SELECT * FROM ${forums}
-        WHERE title IS NULL
-          AND author_if_valid IS NOT NULL
-          AND parent_id IS NOT NULL
-          AND post_number IN(${idxstr.join()})`);
-
-    var replies = new Array(posts.length).fill(0).map(e => new Array());
-
-    replyQueryResult.results.forEach(
-      e => {
-        var mappedIdx = idxtbl[e.post_number];
-        if (mappedIdx > replies.length) {
-          //! @todo. Implement entry removal
-          log("Invalid reply is detected. Removing from entry ...");
-          return;
-        }
-        replies[mappedIdx].push(e);
-      });
-
-    return {posts, replies};
+    return qryRes.results;
   }
   catch (err) {
     throw err;
   }
 }
+
+(async function() {
+  var posts = await searchForumPosts(0, 0, 50);
+  log(posts);
+});
 
 /**
  * @typedef {[{ 
@@ -179,7 +175,9 @@ async function addPosts(
 async function addRepliesOnPost(replyArray)
 {
   var valueArgs = [];
-  var keystr    = 'post_id, author, pw_if_anonym, content, date';
+  /** @type { Map<number, any> } */
+  var replyCnt = new Map();
+  var keystr   = 'post_id, author, pw_if_anonym, content, date';
 
   replyArray.forEach(
     e => {
@@ -193,14 +191,30 @@ async function addRepliesOnPost(replyArray)
 
       arg = Object.values(arg).map(
         e => `'${e.toString().replaceAll('\'', '&apos;')}'`);
+
+      var searched = replyCnt.get(e.post_id);
+      if (searched)
+        replyCnt.set(e.post_id, searched + 1);
+      else
+        replyCnt.set(e.post_id, 1);
+
       valueArgs.push(`(${arg.join()})`);
     });
 
   var qry =
     ` INSERT INTO ${tbl_reply} (${keystr})
       VALUES ${valueArgs.join()}`;
+  await asyncQuery(qry);
 
-  asyncQuery(qry);
+  var qry = [];
+  for (var pair of replyCnt) {
+    var key   = pair[0];
+    var value = pair[1];
+    asyncQuery(
+      ` UPDATE ${tbl_post} 
+        SET num_replies = num_replies + ${value}
+        WHERE id = ${key};`);
+  }
 }
 
 /**
@@ -222,41 +236,24 @@ async function updateForumPostCounts()
 (async function() {
   await updateForumPostCounts();
   log("Initialized forum post count ... Num Forums: ", forumPostCounts.length);
-})();
+});
 
 /*
 // Temporary code ... remove this later!
 (async function() {
   await updateForumPostCounts();
 
-  var {posts, replies} = await searchForumPosts(0, 0, 1000);
-  if (posts.length != replies.length)
-    throw new Error('Invalid search function output params');
+  // Read all replies first
+  var replyQueryResult = await asyncQuery(
+    `SELECT * FROM ${tbl_reply}`);
 
-  var args = [];
-  for (let index = 0; index < posts.length; index++) {
-    var post  = posts[index];
-    var reply = replies[index];
-
-    // argPosts.push({
-    //   author : post.author_if_valid,
-    //   pw_if_anonym : post.pw_if_annonymous,
-    //   content : post.content,
-    //   date : post.issued,
-    //   title : post.title
-    // });
-    reply.forEach(
-      e => {
-        args.push({
-          post_id : index,
-          author : e.author_if_valid,
-          pw_if_anonym : e.pw_if_annonymous,
-          content : e.content,
-          date : e.issued
-        })});
+  var replies = replyQueryResult.results;
+  try {
+    await addRepliesOnPost(replies);
   }
-
-  addRepliesOnPost(args);
+  catch (err) {
+    log(err);
+  }
   log("Data migration process finished, post count: ", forumPostCounts);
 })();
 //*/
