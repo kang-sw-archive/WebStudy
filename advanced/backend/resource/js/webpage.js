@@ -6,7 +6,7 @@ let log = (...args) => {
       ...args);
 };
 
-app.use(express.static('../public'));
+app.use(express.static('../front/dist'));
 app.listen(3000, () => log("Server listen successful"));
 
 app.get('/posts', (req, res) => {
