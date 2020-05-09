@@ -1,12 +1,12 @@
 <style scoped>
 #area {
-  display: flex;
-  border: double 5pt;
+  border-top: solid 1pt;
+  border-bottom: solid 1pt;
   margin: 5pt;
   background-color: lightyellow;
   height: auto;
+  min-width: 1280px;
   padding: 10pt;
-  width: 1280px;
   margin: auto;
   background: rgb(32, 235, 156);
   background: linear-gradient(
@@ -36,6 +36,7 @@
     "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
   font-size: 200%;
   margin: auto;
+  width: 1280px;
   flex: auto;
 }
 
@@ -53,12 +54,12 @@
     <div id="area">
       <span id="menus">
         <a class="entry" href="/">Home</a>
-        <a class="entry" href="/">Forums</a>
+        <a class="entry" href="/forums/">Forums</a>
         <a href="/" id="imgarea">
           <img id="logoimg" class="entry" src="@/assets/logo.gif" />
         </a>
         <a class="entry" href="/">Playground</a>
-        <a class="entry" href="/">Info</a>
+        <a class="entry" href="/info">Info</a>
       </span>
     </div>
   </div>

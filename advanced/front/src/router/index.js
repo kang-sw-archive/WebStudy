@@ -1,4 +1,5 @@
 import Home from '@/components/pages/Home'
+import InfoPage from '@/components/pages/InfoPage'
 import Vue from 'vue'
 import Router from 'vue-router'
 
@@ -11,6 +12,11 @@ export default new Router({
       path: '/',
       name: 'Home',
       component: Home
+    },
+    {
+      path: '/info',
+      name: 'Info',
+      component: InfoPage
     }
   ]
 })

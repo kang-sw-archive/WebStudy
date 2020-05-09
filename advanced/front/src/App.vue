@@ -49,17 +49,17 @@ body {
 
 #center_area {
   display: flex;
-  margin-top: 15pt;
 }
 
 #right_area {
   width: auto;
   margin-right: auto;
-  margin-left: 80px;
+  margin-left: 40px;
 }
 
 #content_area {
-  max-width: 1024px;
+  min-width: 240px;
+  max-width: 1280px;
   min-height: 70vh;
   margin: auto;
   margin-right: 0;
