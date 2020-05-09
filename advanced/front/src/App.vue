@@ -1,25 +1,29 @@
 <template>
-  <div id="app">
-    <top-menu id="top_area"></top-menu>
-    <div id="center_area">
-      <router-view id="content_area" />
-      <span id="right_area">
-        <right-menu></right-menu>
-      </span>
+  <div>
+    <div id="app">
+      <top-menu id="top_area"></top-menu>
+      <div id="center_area">
+        <router-view id="content_area" />
+        <span id="right_area">
+          <right-menu></right-menu>
+        </span>
+      </div>
+      <bottom-info id="bottom_area"></bottom-info>
     </div>
-    <div id="bottom_area"></div>
   </div>
 </template>
 
 <script>
-import RightMenu from '@/components/RightMenu'
-import TopMenu from '@/components/TopMenu'
+import RightMenu from '@/components/layout/RightMenu'
+import TopMenu from '@/components/layout/TopMenu'
+import BottomInfo from '@/components/layout/BottomInfo'
 
 export default {
   name: 'App',
   components: {
     'right-menu': RightMenu,
-    'top-menu': TopMenu
+    'top-menu': TopMenu,
+    'bottom-info': BottomInfo
   }
 }
 </script>
@@ -33,7 +37,7 @@ body {
 }
 
 #app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
+  font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
@@ -45,24 +49,19 @@ body {
 
 #center_area {
   display: flex;
-  margin-top: 20px;
+  margin-top: 15pt;
 }
 
 #right_area {
-  width: 200px;
-  border: 1pt dashed;
+  width: auto;
   margin-right: auto;
   margin-left: 80px;
 }
 
 #content_area {
-  max-width: 800px;
+  max-width: 1024px;
+  min-height: 70vh;
   margin: auto;
   margin-right: 0;
-}
-
-#bottom_area {
-  margin-top: 40px;
-  border: 1px dashed gray;
 }
 </style>
