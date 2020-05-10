@@ -1,6 +1,7 @@
-var db  = require('./database');
-var log = require('./timelog');
-var xss = require('xss');
+var db   = require('./database');
+var log  = require('./timelog');
+var util = require('./utility');
+var xss  = require('xss');
 
 const forums        = 'posts_old';
 const tbl_post      = 'posts';
@@ -13,9 +14,36 @@ module.exports = {
   searchForumPosts : fetchForumPosts,
   addPosts,
   updateForumPostCounts,
-  numPostsOfForum : function(index) { return forumPostCounts[index]; },
+  numPostsOfForum,
   addRepliesOnPost
 };
+
+/** 
+ * Get number of forum posts 
+ * @param {number} index
+ */
+async function numPostsOfForum(index)
+{
+  var val = forumPostCounts[index];
+  return val ? val : 0;
+}
+
+/**
+ * Increment number of forum post
+ */
+async function increaseForumPostCount(index)
+{
+  forumPostCounts[index] = forumPostCounts[index] ? forumPostCounts[index] + 1 : 1;
+  return forumPostCounts[index] - 1;
+}
+
+/**
+ * Decrement count of forum post
+ */
+async function decreaseForumPostCount(index)
+{
+  forumPostCounts[index]--;
+}
 
 /**
  * 
@@ -93,29 +121,53 @@ async function fetchForumPosts(
 });
 
 /**
- * @typedef {[{ 
+ * 
+ * @param {Array<number>} postIdArray 
+ * @param {Array<string>} excludeColumns columns to exclude from result
+ * @returns {Promise<Array<any>>}
+ */
+async function fetchForumReplies(postIdArray, excludeColumns = [ 'pw_if_anonym' ])
+{
+  var columns =
+    [ 'id', 'post_id', 'author', 'pw_if_anonym', 'content', 'date' ]
+      .filter(e => excludeColumns.includes(e) == false);
+
+  var qry = `
+    SELECT ${columns.join()} FROM ${tbl_reply}
+      WHERE post_id IN(${postIdArray.join()})
+        AND is_removed=0`;
+
+  try {
+    var replies = (await asyncQuery(qry)).results;
+  }
+  catch (err) {
+    throw err;
+  }
+
+  return replies;
+}
+
+/**
+ * @typedef {{
       author:!string,
       pw_if_anonym:?string,
       title:!string,
       content:!string,
       date:Date
-    }]} PostArgArray
+    }} PostArg
  */
 
 /**
  * 
  * @param {number} forumIdx 
  * @param {?number} parentIfExist 
- * @param {PostArgArray} argArray 
+ * @param {Array<PostArg>} argArray 
  */
 async function addPosts(
   forumIdx,
   argArray,
   parentIfExist = null)
 {
-  if (forumPostCounts[forumIdx] == null)
-    forumPostCounts[forumIdx] = 0;
-
   var qryValues = [];
 
   for (var arguments of argArray) {
@@ -132,13 +184,13 @@ async function addPosts(
       data.parent_id_if_exists = parentIfExist.toString();
     }
     else {
-      data.forum_post_number = (forumPostCounts[forumIdx]++).toString();
+      data.forum_post_number = (await increaseForumPostCount(forumIdx)).toString();
     }
 
     // Make arguments query-safe
     for (var key in data) {
       var value = data[key];
-      data[key] = `'${value.replaceAll(`'`, `&apos;`)}'`;
+      data[key] = `'${util.replaceAll(value, `'`, `&apos;`)}'`;
     }
 
     qryValues.push(`(${Object.values(data).join()})`);
@@ -154,23 +206,24 @@ async function addPosts(
   }
   catch (err) {
     // Role back post count
-    forumPostCounts[forumIdx]--;
+    decreaseForumPostCount(forumIdx);
+    throw err;
   }
 }
 
 /**
- * @typedef {[{
+ * @typedef {{
       post_id: number,
       author: string,
       pw_if_anonym: string,
       content: string,
       date: Date
-    }]} ReplyDescArray
+    }} ReplyDesc
  */
 
 /**
  *  
- * @param {ReplyDescArray} replyArray 
+ * @param {Array<ReplyDesc>} replyArray 
  */
 async function addRepliesOnPost(replyArray)
 {
@@ -219,6 +272,7 @@ async function addRepliesOnPost(replyArray)
 
 /**
  * Initialize number of postings for each forums, which can be accessd by index
+ * @todo Make this to work with clustering
  * @returns {Promise<void>}
  */
 async function updateForumPostCounts()
@@ -257,3 +311,26 @@ async function updateForumPostCounts()
   log("Data migration process finished, post count: ", forumPostCounts);
 })();
 //*/
+
+// var sha256 = require('sha256');
+// var posts  = [];
+
+// for (let index = 0; index < 25; index++) {
+//   var name = sha256(index.toString()).substr(0, 11);
+
+//   /** @type {PostArg} */
+// var post =
+//   {
+//     author : name.toString(),
+//     pw_if_anonym : sha256((index * index).toString()),
+//     title : sha256(name).substr(0, 11),
+//     content : sha256(name.toUpperCase()),
+//     date : new Date(Date.now() - Math.random() * 1e8)
+//   };
+
+// posts.push(post);
+// }
+
+// addPosts(0, posts)
+//   .then(e => {log(`Added ${posts.length} posts`)})
+// .catch(err => {log(err)});
