@@ -1,3 +1,6 @@
+/**
+ * @todo these APIs should be able to handle cluster ... thus the global variable forumPostCounts must be removed, and replaced into corresponding shared resource APIs.
+ */
 var db   = require('./database');
 var log  = require('./timelog');
 var util = require('./utility');
@@ -11,21 +14,49 @@ let forumPostCounts = [];
 
 module.exports = {
   asyncQuery,
-  searchForumPosts : fetchForumPosts,
+  fetchForumPosts,
   addPosts,
   updateForumPostCounts,
-  numPostsOfForum,
+  getForumPostCount,
   addRepliesOnPost
+  // modifyPost
+  // modifyReply
 };
+
+/**
+ * Initialize number of postings for each forums, which can be accessd by index
+ * @todo Make this fit with clustering to not to refresh repeatedly on shared resources
+ * @returns {Promise<void>}
+ */
+async function updateForumPostCounts()
+{
+  var queryRes = await asyncQuery(
+    ` SELECT  forum_number    AS bucket,
+              COUNT(*)        AS COUNT
+      FROM    ${tbl_post}
+      GROUP   BY bucket`);
+
+  queryRes.results
+    .forEach(e => { forumPostCounts[e.bucket] = e.COUNT; });
+}
 
 /** 
  * Get number of forum posts 
  * @param {number} index
  */
-async function numPostsOfForum(index)
+async function getForumPostCount(index)
 {
   var val = forumPostCounts[index];
   return val ? val : 0;
+}
+
+/**
+ * @param {Array<int>} indices 
+ * @returns {[{forumIdx:number, postCnt: number}]}
+ */
+async function getForumPostCounts(indices)
+{
+  return indices.map(key => ({forumIdx : key, postCnt : getForumPostCount(key)}));
 }
 
 /**
@@ -263,21 +294,4 @@ async function addRepliesOnPost(replyArray)
         SET num_replies = num_replies + ${value}
         WHERE id = ${key};`);
   }
-}
-
-/**
- * Initialize number of postings for each forums, which can be accessd by index
- * @todo Make this to work with clustering
- * @returns {Promise<void>}
- */
-async function updateForumPostCounts()
-{
-  var queryRes = await asyncQuery(
-    ` SELECT  forum_number    AS bucket,
-              COUNT(*)        AS COUNT
-      FROM    ${tbl_post}
-      GROUP   BY bucket`);
-
-  queryRes.results
-    .forEach(e => { forumPostCounts[e.bucket] = e.COUNT; });
 }
