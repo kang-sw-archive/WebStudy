@@ -115,11 +115,6 @@ async function fetchForumPosts(
   }
 }
 
-(async function() {
-  var posts = await fetchForumPosts(0, 0, 50);
-  log(posts);
-});
-
 /**
  * 
  * @param {Array<number>} postIdArray 
@@ -286,51 +281,3 @@ async function updateForumPostCounts()
   queryRes.results
     .forEach(e => { forumPostCounts[e.bucket] = e.COUNT; });
 }
-
-(async function() {
-  await updateForumPostCounts();
-  log("Initialized forum post count ... Num Forums: ", forumPostCounts.length);
-});
-
-/*
-// Temporary code ... remove this later!
-(async function() {
-  await updateForumPostCounts();
-
-  // Read all replies first
-  var replyQueryResult = await asyncQuery(
-    `SELECT * FROM ${tbl_reply}`);
-
-  var replies = replyQueryResult.results;
-  try {
-    await addRepliesOnPost(replies);
-  }
-  catch (err) {
-    log(err);
-  }
-  log("Data migration process finished, post count: ", forumPostCounts);
-})();
-//*/
-
-// var sha256 = require('sha256');
-// var posts  = [];
-
-// for (let index = 0; index < 25; index++) {
-//   var name = sha256(index.toString()).substr(0, 11);
-
-//   /** @type {PostArg} */
-// var post =
-//   {
-//     author : name.toString(),
-//     pw_if_anonym : sha256((index * index).toString()),
-//     title : sha256(name).substr(0, 11),
-//     content : sha256(name.toUpperCase()),
-//     date : new Date(Date.now() - Math.random() * 1e8)
-//   };
-
-// posts.push(post);
-// }
-
-// addPosts(0, posts)
-//   .then(e => {log(`Added ${posts.length} posts`)})
-// .catch(err => {log(err)});
