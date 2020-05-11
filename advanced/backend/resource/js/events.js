@@ -21,27 +21,27 @@ app.get('/forum/', async function(req, res) {
 app.get(/\/forum\/\w+\//, async function(req, res) {
   try {
     // Query parameter check
-    var forumName              = req.url.split('/')[2];
-    var q                      = req.query;
-    var {page, posts_per_page} = q;
-    var forum_id               = await forum.findForumIdByName(forumName);
-    log(forumName, forum_id);
+    var forumName                             = req.url.split('/')[2];
+    var q                                     = req.query;
+    var {page, posts_per_page : postsPerPage} = q;
+    var forumId                               = await forum.findForumIdByName(forumName);
+    log(forumName, forumId);
 
-    if (isNaN(posts_per_page) || posts_per_page < 0)
-      posts_per_page = 50;
+    if (isNaN(postsPerPage) || postsPerPage < 0)
+      postsPerPage = 50;
 
-    if (isNaN(forum_id) || isNaN(page))
+    if (isNaN(forumId) || isNaN(page))
       throw new Error("Invalid query parameters has delievered.");
 
-    if (isNaN(await forum.isValidForumId(forum_id))) {
+    if (isNaN(await forum.isValidForumId(forumId))) {
       res.send(JSON.stringify(null));
       return;
     }
 
     var posts = await forum.fetchForumPosts(
-      forum_id,
-      page * posts_per_page,
-      posts_per_page);
+      forumId,
+      page * postsPerPage,
+      postsPerPage);
 
     res.send(JSON.stringify(posts));
   }
