@@ -6,22 +6,36 @@ var log  = require('./timelog');
 var util = require('./utility');
 var xss  = require('xss');
 
-const forums        = 'posts_old';
-const tbl_post      = 'posts';
-const tbl_reply     = 'replies';
-const tbl_forum     = 'forums';
-let forumPostCounts = [];
+const forums         = 'posts_old';
+const tbl_post       = 'posts';
+const tbl_reply      = 'replies';
+const tbl_forum      = 'forums';
+let forumPostCounts  = [];
+let forumNameIdTable = new Map;
 
 module.exports = {
   asyncQuery,
+  fetchForumList,
   fetchForumPosts,
+  fetchForumReplies,
   addPosts,
   updateForumPostCounts,
   getForumPostCount,
-  addRepliesOnPost
+  addRepliesOnPost,
+  isValidForumId,
+  findForumIdByName
   // modifyPost
   // modifyReply
 };
+
+/**
+ * 
+ * @param {string} name 
+ */
+async function findForumIdByName(name)
+{
+  return forumNameIdTable.get(name);
+}
 
 /**
  * Initialize number of postings for each forums, which can be accessd by index
@@ -30,6 +44,7 @@ module.exports = {
  */
 async function updateForumPostCounts()
 {
+  /** @type { { results: Array<ForumDesc>} } */
   var queryRes = await asyncQuery(
     ` SELECT  forum_number    AS bucket,
               COUNT(*)        AS COUNT
@@ -38,7 +53,12 @@ async function updateForumPostCounts()
 
   queryRes.results
     .forEach(e => { forumPostCounts[e.bucket] = e.COUNT; });
+
+  var forums = (await fetchForumList());
+  forums.forEach(e => {forumNameIdTable.set(e.title, e.id)});
 }
+
+updateForumPostCounts();
 
 /** 
  * Get number of forum posts 
@@ -48,6 +68,15 @@ async function getForumPostCount(index)
 {
   var val = forumPostCounts[index];
   return val ? val : 0;
+}
+
+/**
+ * Queries if given forum id is valid.
+ * @param {number} index 
+ */
+async function isValidForumId(index)
+{
+  return !isNaN(forumPostCounts[index]);
 }
 
 /**
@@ -95,6 +124,20 @@ function asyncQuery(queryStr)
 }
 
 /** @typedef {{
+      id: number,
+      title: string,
+      intro: string,
+      date: Date }} ForumDesc */
+
+/**
+ * @returns {Promise<Array<ForumDesc>>}
+ */
+async function fetchForumList()
+{
+  return (await asyncQuery("SELECT * FROM forums")).results;
+}
+
+/** @typedef {{
       id:number,
       parent_id_if_exists: ?number,
       forum_number: number,
@@ -137,6 +180,7 @@ async function fetchForumPosts(
         FROM ${tbl_post} 
         WHERE is_removed = 0
           AND parent_id_if_exists IS NULL
+          AND forum_number = ${forumIndex}
         ORDER BY forum_post_number DESC
         LIMIT ${postIndex}, ${numPosts}`);
     return qryRes.results;
@@ -286,6 +330,7 @@ async function addRepliesOnPost(replyArray)
   await asyncQuery(qry);
 
   var qry = [];
+  asyncQuery('begin');
   for (var pair of replyCnt) {
     var key   = pair[0];
     var value = pair[1];
@@ -294,4 +339,5 @@ async function addRepliesOnPost(replyArray)
         SET num_replies = num_replies + ${value}
         WHERE id = ${key};`);
   }
+  asyncQuery('end');
 }
